@@ -1,12 +1,10 @@
 services:
   - type: web
-    name: portal-link-report-server
+    name: portal-link-report
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn server:report_app --host 0.0.0.0 --port $PORT"
     envVars:
-      - key: PORT
-        sync: false  # Render automaattisesti antaa 
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: 3.11
