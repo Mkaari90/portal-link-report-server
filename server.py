@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import threading
 import time
-import uuid
 
 # Luo FastAPI app
 report_app = FastAPI()
@@ -17,7 +16,7 @@ class Report(BaseModel):
     task_id: str = Field(..., description="Unique identifier for the task")
     project_structure: dict = Field(..., description="Full project structure including files and contents")
     validation_results: dict = Field(..., description="Codebase validation results")
-    snapshot_metadata: dict = Field(..., description="Optional snapshot info", default={})
+    snapshot_metadata: dict = Field(default_factory=dict, description="Optional snapshot info")
     timestamp: float = Field(default_factory=lambda: time.time(), description="Time of report creation")
 
 # Vastaanota raportti
@@ -39,7 +38,12 @@ async def get_report(report_id: str):
             raise HTTPException(status_code=404, detail="Report not found")
         return JSONResponse(status_code=200, content=report_data["report"])
 
-# Poistetaan vanhat raportit (esim. yli 30 min vanhat)
+# Terveyden tarkistus
+@report_app.get("/health")
+async def health_check():
+    return {"status": "ok", "stored_reports": len(stored_reports)}
+
+# Poistetaan vanhat raportit automaattisesti
 def cleanup_reports():
     while True:
         current_time = time.time()
@@ -49,10 +53,5 @@ def cleanup_reports():
                 del stored_reports[key]
         time.sleep(60)
 
-# Siivouskäynnistys erillisessä säikeessä
+# Käynnistä siivous säikeessä
 threading.Thread(target=cleanup_reports, daemon=True).start()
-
-# Terveyden tarkistus
-@report_app.get("/health")
-async def health_check():
-    return {"status": "ok", "stored_reports": len(stored_reports)}
